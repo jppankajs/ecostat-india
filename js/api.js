@@ -52,22 +52,30 @@ function classifySource({ no2, co, pm25, pm10, so2, o3 }) {
   };
 }
 
-// ═══ GEOCODING (Nominatim) ═══
+// ═══ GEOCODING (Open-Meteo) ═══
 
 async function geocode(q) {
   if (q.length < 2) return [];
   const now = Date.now();
-  if (now - lastGeoTime < 1000) {
-    await new Promise(r => setTimeout(r, 1000 - (now - lastGeoTime)));
+  if (now - lastGeoTime < 300) {
+    await new Promise(r => setTimeout(r, 300 - (now - lastGeoTime)));
   }
   lastGeoTime = Date.now();
 
   const r = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=3&addressdetails=1`,
-    { headers: { 'User-Agent': 'EcoStat/1.0 (github.com/ecostat-dashboard/ecostat)' } }
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`
   );
   if (!r.ok) throw new Error('GEO_FAIL');
-  return r.json();
+  const data = await r.json();
+  if (!data.results || !data.results.length) return [];
+
+  // Normalize to a shape compatible with the rest of the app
+  return data.results.map(r => ({
+    lat: r.latitude,
+    lon: r.longitude,
+    name: r.name,
+    display_name: [r.name, r.admin1, r.country].filter(Boolean).join(', ')
+  }));
 }
 
 // ═══ DATA FETCHING (Open-Meteo + CAMS) ═══

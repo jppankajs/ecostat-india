@@ -46,8 +46,17 @@ function useGeo() {
   navigator.geolocation.getCurrentPosition(async pos => {
     showLoading(); setLoadStep(1);
     try {
-      const r = await geocode(`${pos.coords.latitude},${pos.coords.longitude}`);
-      const name = r.length ? r[0].display_name.split(',')[0] : 'My Location';
+      // Reverse geocode via BigDataCloud (free, no API key, CORS-friendly)
+      let name = 'My Location';
+      try {
+        const rgRes = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=en`
+        );
+        if (rgRes.ok) {
+          const rgData = await rgRes.json();
+          name = rgData.city || rgData.locality || rgData.principalSubdivision || 'My Location';
+        }
+      } catch (_) { /* fallback to 'My Location' */ }
       searchInput.value = name;
       setLoadStep(2);
       const d = await fetchCityData(pos.coords.latitude, pos.coords.longitude, name);
@@ -263,7 +272,7 @@ function openModal() {
 <li><strong>Resolution:</strong> 11km grid — street-level variation not captured.</li>
 <li><strong>Remote areas:</strong> fewer ground stations = more model interpolation.</li>
 <li><strong>Forecast:</strong> 7-day AQI forecast is model output, not guaranteed.</li>
-<li><strong>Nominatim:</strong> uses OSM — may not reflect very new place names.</li>
+<li><strong>Geocoding:</strong> uses Open-Meteo Geocoding (GeoNames) — may not include very new or minor place names.</li>
 <li><strong>Static data:</strong> CO₂, sea level etc are annual figures, not streaming.</li>
 </ul>`;
 }
