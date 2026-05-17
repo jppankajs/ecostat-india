@@ -8,6 +8,8 @@
 
 Live air quality, AQI computation, and climate analytics powered by **Copernicus CAMS** satellite data via Open-Meteo.
 
+![EcoStat Dashboard](screenshot.png)
+
 ## Features
 
 - **Triple AQI Standard** — India CPCB, US EPA (2024 revised), WHO 2021
