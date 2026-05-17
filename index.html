@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EcoStat — Real-Time Environmental Analytics</title>
+  <meta name="description" content="Live air quality, AQI, and climate analytics powered by Copernicus CAMS satellite data.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- TICKER -->
+  <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">🌿 EcoStat</div>
+      <div>
+        <div style="font-size:.9rem;font-weight:600">Real-Time Environmental Analytics</div>
+        <div class="header-sub">Every number fetched live from Copernicus CAMS satellite network</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div>Data: Copernicus CAMS · Open-Meteo · Nominatim</div>
+      <div>Last fetch: <span class="ts" id="fetchTs">—</span></div>
+      <button class="method-btn" onclick="openModal()">ℹ Methodology</button>
+    </div>
+  </header>
+
+  <!-- SEARCH -->
+  <div class="search-section">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search any city — Delhi, London, Lagos...">
+      <button class="geo-btn" onclick="useGeo()">🎯 My Location</button>
+    </div>
+    <div class="suggestions" id="suggestions"></div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+  <div class="loading-bar" id="loadBar">
+    <div class="load-step" id="ls1">📍 Locating city...</div>
+    <div class="load-step" id="ls2">🛰 Fetching Copernicus CAMS data...</div>
+    <div class="load-step" id="ls3">🧮 Computing AQI and analytics...</div>
+    <div class="load-step" id="ls4">📊 Rendering dashboard...</div>
+  </div>
+
+  <div class="container">
+    <!-- DASHBOARD (hidden until city searched) -->
+    <div class="dashboard" id="dashboard">
+
+      <!-- SPARSE WARNING -->
+      <div class="sparse-banner" id="sparseBanner">⚠ Sparse sensor coverage in this region. Data from Copernicus CAMS model interpolation only.</div>
+
+      <!-- HERO -->
+      <div class="hero-row">
+        <div class="card gauge-wrap" id="gaugeCard">
+          <canvas id="gaugeChart" width="280" height="180" aria-label="AQI Gauge"></canvas>
+          <div class="gauge-val hero-num" id="gaugeVal">—</div>
+          <div class="gauge-cat" id="gaugeCat">—</div>
+          <div class="gauge-sub" id="gaugeSub">Based on 24-hr rolling avg PM2.5</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Triple Standard Comparison</div>
+          <div class="std-grid" id="stdGrid">
+            <div class="std-card"><h4>India CPCB</h4><div class="val hero-num" id="cpcbVal">—</div><div class="cat" id="cpcbCat">—</div></div>
+            <div class="std-card"><h4>US EPA</h4><div class="val hero-num" id="epaVal">—</div><div class="cat" id="epaCat">—</div></div>
+            <div class="std-card"><h4>WHO 2021</h4><div class="val" id="whoVal">—</div><div class="cat" id="whoCat">—</div></div>
+          </div>
+          <div class="std-explain" id="stdExplain" onclick="this.classList.toggle('open')">
+            ▸ Why do standards differ? India's CPCB PM2.5 "Good" threshold is 30 μg/m³ vs US EPA's 9 μg/m³ (revised Feb 2024, effective May 2024). Same air, different classifications.
+          </div>
+        </div>
+      </div>
+
+      <!-- POLLUTANT CARDS -->
+      <h3 class="section-title">Pollutant Levels (24-hr Averages)</h3>
+      <div class="poll-grid" id="pollGrid"></div>
+
+      <!-- STATS PANEL -->
+      <div class="card stats-panel" id="statsPanel">
+        <div class="card-title" id="statsTitle">7-Day PM2.5 Statistical Summary</div>
+        <div class="stat-pills" id="statPills"></div>
+        <div id="threshBars"></div>
+        <div class="trend-text" id="trendText"></div>
+      </div>
+
+      <!-- 14-DAY PIVOT CHART -->
+      <h3 class="section-title">14-Day PM2.5 Trend — Past + Forecast</h3>
+      <div class="card chart-full">
+        <canvas id="pivotChart" aria-label="14-day PM2.5 trend chart"></canvas>
+        <div style="font-size:.7rem;color:var(--text3);margin-top:.35rem">Solid = actual data (past) · Dashed = forecast · Source: Copernicus CAMS via Open-Meteo</div>
+      </div>
+
+      <!-- FINGERPRINT -->
+      <div class="card fp-card" id="fpCard">
+        <div class="fp-icon" id="fpIcon">—</div>
+        <div>
+          <div style="font-weight:600;font-size:1rem" id="fpLabel">—</div>
+          <div style="font-size:.8rem;color:var(--text2)" id="fpDetail">—</div>
+          <div style="font-size:.65rem;color:var(--text3);margin-top:.25rem" id="fpCite">—</div>
+        </div>
+        <div class="fp-conf" id="fpConf">—</div>
+      </div>
+
+      <!-- 3 CHARTS ROW -->
+      <div class="chart-row3">
+        <div class="card chart-box"><div class="card-title">Pollutant Radar (WHO Normalized)</div><canvas id="radarChart" aria-label="Pollutant radar chart"></canvas></div>
+        <div class="card chart-box"><div class="card-title">24-Hour PM2.5 Heatmap</div><canvas id="heatmapChart" aria-label="24-hour heatmap"></canvas></div>
+        <div class="card chart-box"><div class="card-title">AQI Category Distribution (7d)</div><canvas id="donutChart" aria-label="AQI category donut"></canvas></div>
+      </div>
+
+      <!-- 2 CHARTS ROW -->
+      <div class="chart-row2">
+        <div class="card chart-box"><div class="card-title">Peak Hour Analysis</div><canvas id="histChart" aria-label="Peak hour histogram"></canvas></div>
+        <div class="card chart-box"><div class="card-title">PM2.5 vs Temperature</div><canvas id="scatterChart" aria-label="PM2.5 temperature scatter"></canvas></div>
+      </div>
+
+      <!-- HEALTH MATRIX -->
+      <h3 class="section-title">Health Advisory Matrix</h3>
+      <div class="card"><div class="health-matrix" id="healthMatrix"></div></div>
+
+      <!-- WEATHER -->
+      <h3 class="section-title">Weather Context</h3>
+      <div class="card"><div class="wx-grid" id="wxGrid"></div></div>
+    </div><!-- end dashboard -->
+
+    <!-- COMPARE -->
+    <button class="compare-toggle" id="compareBtn" onclick="toggleCompare()">📊 Compare Cities</button>
+    <div class="compare-section" id="compareSection">
+      <div class="card">
+        <div class="card-title">City Comparison (up to 3 cities)</div>
+        <div class="compare-slots" id="compareSlots">
+          <input placeholder="City 1" id="cmp1">
+          <input placeholder="City 2" id="cmp2">
+          <input placeholder="City 3" id="cmp3">
+        </div>
+        <button class="geo-btn" style="margin:.5rem 0" onclick="runCompare()">Compare Now</button>
+        <div class="tab-bar" id="cmpTabs">
+          <button class="tab-btn active" onclick="showCmpTab(0)">Gauges</button>
+          <button class="tab-btn" onclick="showCmpTab(1)">Pollutants</button>
+          <button class="tab-btn" onclick="showCmpTab(2)">Trends</button>
+          <button class="tab-btn" onclick="showCmpTab(3)">Ranking</button>
+        </div>
+        <div class="tab-content active" id="cmpTab0"><canvas id="cmpGaugeChart"></canvas></div>
+        <div class="tab-content" id="cmpTab1"><canvas id="cmpBarChart"></canvas></div>
+        <div class="tab-content" id="cmpTab2"><canvas id="cmpTrendChart"></canvas></div>
+        <div class="tab-content" id="cmpTab3"><div id="cmpTable"></div></div>
+      </div>
+    </div>
+
+    <!-- GLOBAL INDICATORS -->
+    <h3 class="section-title">🌍 Global Climate Indicators — Authoritative Static Data</h3>
+    <div class="gi-grid" id="giGrid"></div>
+
+    <!-- TRANSPARENCY MODAL -->
+    <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" id="methodModal"></div>
+    </div>
+
+  </div><!-- end container -->
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div>🌿 EcoStat · Real-time data · Open-Meteo API</div>
+    <div>Data: Copernicus CAMS · Nominatim OSM · Open-Meteo</div>
+    <div>Open-source environmental analytics</div>
+  </footer>
+
+  <!-- Scripts (load order matters) -->
+  <script src="js/constants.js"></script>
+  <script src="js/math.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
