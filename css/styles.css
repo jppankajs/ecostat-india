@@ -86,7 +86,9 @@ a:hover { text-decoration: underline; }
   gap: .5rem;
 }
 .header-left { display: flex; align-items: center; gap: .75rem; }
-.logo { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+.logo { font-size: 1.6rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: .5rem; }
+.logo-img { height: 36px; width: 36px; object-fit: contain; border-radius: 6px; }
+.footer-logo-img { height: 20px; width: 20px; object-fit: contain; vertical-align: middle; margin-right: .25rem; border-radius: 3px; }
 .header-sub { font-size: .75rem; color: var(--text3); }
 .header-right { font-size: .75rem; color: var(--text3); text-align: right; }
 .header-right .ts { color: var(--cyan); font-family: 'IBM Plex Mono', monospace; }

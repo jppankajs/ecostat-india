@@ -264,4 +264,4 @@ Behaviour   : Expired or missing → fresh API call
 
 ---
 
-*EcoStat Methodology v1.0 · Pankaj (24BCNB27) · BCA 4th Semester · Kristu Jayanti University, Bengaluru*
+*EcoStat Methodology v1.0 .
