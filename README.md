@@ -1,4 +1,4 @@
-# 🌿 EcoStat — Real-Time Environmental Analytics Dashboard
+# <img src="assets/logo.png" width="28" height="28" alt="EcoStat Logo"> EcoStat — Real-Time Environmental Analytics Dashboard
 
 > A citizen-science environmental analytics tool that computes air quality under three simultaneous
 > standards (India CPCB, US EPA 2024, WHO 2021) using live Copernicus CAMS satellite data for any
